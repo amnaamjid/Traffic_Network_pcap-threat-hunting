@@ -1,0 +1,39 @@
+  GNU nano 8.2                                                                                              /opt/threat_mitigation.sh                                                                                                        
+#!/bin/bash
+# ===== CONFIGURATION =====
+# Malicious IPs involved in DNS Tunneling, SYN Flood, and Command-and-Control
+MALICIOUS_IPS=(
+  "203.0.113.55"
+  "185.200.50.10"
+  "102.54.32.12"
+  "198.51.100.77"
+)
+# Log file for forensics
+LOG_FILE="/var/log/threat_block.log"
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+
+echo "[$DATE] Starting mitigation..." | tee -a $LOG_FILE
+
+# ===== ACTIONS =====
+# 1. Block malicious IPs using iptables
+for IP in "${MALICIOUS_IPS[@]}"; do
+  echo "[$DATE] Blocking IP: $IP" | tee -a $LOG_FILE
+  iptables -A INPUT -s "$IP" -j DROP
+  iptables -A OUTPUT -d "$IP" -j DROP
+done
+
+# 2. Detect anomalous traffic (simple SYN flood detection via netstat)
+echo "[$DATE]  Checking for SYN flood attempts..." | tee -a $LOG_FILE
+netstat -anp | grep 'SYN_RECV' | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 10 | tee -a $LOG_FILE
+
+# 3. Alert if any IP has >100 SYN_RECV connections (indicating likely DDoS)
+SUSPECTS=$(netstat -anp | grep 'SYN_RECV' | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | awk '$1 > 100 {print $2}')
+for SUSPECT in $SUSPECTS; do
+  echo "[$DATE]  Possible SYN flood from: $SUSPECT — Blocking immediately." | tee -a $LOG_FILE
+  iptables -A INPUT -s "$SUSPECT" -j DROP
+done
+
+# 4. Save iptables rules (persistent across reboot if iptables-persistent is installed)
+iptables-save > /etc/iptables/rules.v4
+
+echo "[$DATE] Mitigation completed. All threats neutralized for now." | tee -a $LOG_FILE
