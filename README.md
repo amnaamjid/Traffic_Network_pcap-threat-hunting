@@ -106,9 +106,9 @@ Follow the report or screenshots for insights
 
 Run the bash script in a Linux terminal (test environment recommended)
 
+---
 
-
-💬 Connect With Me
+## 💬 Connect With Me
 📧 amnaamjid002@gmail.com
 🔗 LinkedIn – https://www.linkedin.com/in/amna-amjid-a6b800251/
 🌐 GitHub – (https://github.com/amnaamjid)
